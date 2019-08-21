@@ -10,15 +10,15 @@ async function start() {
   const container = document.createElement("div");
   container.style.position = "relative";
   document.body.append(container);
-  const LabeledFacceDescriptors = await loadLabeledImages();
-  const faceMatcher = new faceapi.FaceMatcher(LabeledFacceDescriptors, 0.6);
+  const labeledFaceDescriptors = await loadLabeledImages();
+  const faceMatcher = new faceapi.FaceMatcher(labeledFaceDescriptors, 0.6);
   let image;
   let canvas;
   document.body.append("Loaded");
   imageUpload.addEventListener("change", async () => {
     if (image) image.remove();
     if (canvas) canvas.remove();
-    image = await faceapi.bufferToImage(imageUpload.file[0]);
+    image = await faceapi.bufferToImage(imageUpload.files[0]);
     container.append(image);
     canvas = faceapi.createCanvasFromMedia(image);
     container.append(canvas);
@@ -41,6 +41,7 @@ async function start() {
     });
   });
 }
+
 function loadLabeledImages() {
   const labels = [
     "Black Widow",
@@ -56,15 +57,16 @@ function loadLabeledImages() {
       const descriptions = [];
       for (let i = 1; i <= 2; i++) {
         const img = await faceapi.fetchImage(
-          "https://github.com/vienhong20/MyFiles/${label}/${i}.jpg"
+          `https://raw.githubusercontent.com/vienhong20/Face-Recognition-/master/labeled_images/${label}/${i}.jpg`
         );
         const detections = await faceapi
           .detectSingleFace(img)
           .withFaceLandmarks()
-          .withFaceDescriptors();
+          .withFaceDescriptor();
         descriptions.push(detections.descriptor);
       }
-      return new faceapi.LabeledFacceDescriptors(label, descriptions);
+
+      return new faceapi.LabeledFaceDescriptors(label, descriptions);
     })
   );
 }
