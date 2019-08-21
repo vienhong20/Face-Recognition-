@@ -1,9 +1,9 @@
 const imageUpload = document.getElementById("imageUpload");
 
 Promise.all([
-  faceapi.nets.faceRecognitionNet.loadfromUri("/models"),
-  faceapi.nets.faceLandmark68Net.loadfromUri("/models"),
-  faceapi.nets.ssdMobilenetv1.loadfromUri("/models")
+  faceapi.nets.faceRecognitionNet.loadFromUri("/models"),
+  faceapi.nets.faceLandmark68Net.loadFromUri("/models"),
+  faceapi.nets.ssdMobilenetv1.loadFromUri("/models")
 ]).then(start);
 
 async function start() {
@@ -11,12 +11,16 @@ async function start() {
   container.style.position = "relative";
   document.body.append(container);
   const LabeledFacceDescriptors = await loadLabeledImages();
-  const faceMatcher = new faceapi.faceMatcher(LabeledFacceDescriptors, 0.6);
+  const faceMatcher = new faceapi.FaceMatcher(LabeledFacceDescriptors, 0.6);
+  let image;
+  let canvas;
   document.body.append("Loaded");
   imageUpload.addEventListener("change", async () => {
-    const image = await faceapi.bufferToImage(imageUpload.file[0]);
+    if (image) image.remove();
+    if (canvas) canvas.remove();
+    image = await faceapi.bufferToImage(imageUpload.file[0]);
     container.append(image);
-    const canvas = faceapi.createCanvasFromMedia(image);
+    canvas = faceapi.createCanvasFromMedia(image);
     container.append(canvas);
     const displaySize = { width: image.width, height: image.height };
     faceapi.matchDimensions(canvas, displaySize);
@@ -28,7 +32,7 @@ async function start() {
     const results = resizedDetections.map(d =>
       faceMatcher.findBestMatch(d.descriptor)
     );
-    resizedDetections.forEach((result, i) => {
+    results.forEach((result, i) => {
       const box = resizedDetections[i].detection.box;
       const drawBox = new faceapi.draw.DrawBox(box, {
         label: result.toString()
@@ -52,7 +56,7 @@ function loadLabeledImages() {
       const descriptions = [];
       for (let i = 1; i <= 2; i++) {
         const img = await faceapi.fetchImage(
-          "https://github.com/vienhong20/Face-Recognition-/tree/master/labeled_images/${label}/${i}.jpg"
+          "https://github.com/vienhong20/MyFiles/${label}/${i}.jpg"
         );
         const detections = await faceapi
           .detectSingleFace(img)
