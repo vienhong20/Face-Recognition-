@@ -6,10 +6,12 @@ Promise.all([
   faceapi.nets.ssdMobilenetv1.loadfromUri("/models")
 ]).then(start);
 
-function start() {
+async function start() {
   const container = document.createElement("div");
   container.style.position = "relative";
   document.body.append(container);
+  const LabeledFacceDescriptors = await loadLabeledImages();
+  const faceMatcher = new faceapi.faceMatcher(LabeledFacceDescriptors, 0.6);
   document.body.append("Loaded");
   imageUpload.addEventListener("change", async () => {
     const image = await faceapi.bufferToImage(imageUpload.file[0]);
@@ -23,9 +25,14 @@ function start() {
       .withFaceLandmarks()
       .withFaceDescriptors();
     const resizedDetections = faceapi.resizeResults(detections, displaySize);
-    resizedDetections.forEach(detection => {
-      const box = detection.detection.box;
-      const drawBox = new faceapi.draw.DrawBox(box, { label: "Face" });
+    const results = resizedDetections.map(d =>
+      faceMatcher.findBestMatch(d.descriptor)
+    );
+    resizedDetections.forEach((result, i) => {
+      const box = resizedDetections[i].detection.box;
+      const drawBox = new faceapi.draw.DrawBox(box, {
+        label: result.toString()
+      });
       drawBox.draw(canvas);
     });
   });
@@ -42,9 +49,18 @@ function loadLabeledImages() {
   ];
   return Promise.all(
     labels.map(async label => {
+      const descriptions = [];
       for (let i = 1; i <= 2; i++) {
-        const img = await faceapi.fetchImage();
+        const img = await faceapi.fetchImage(
+          "https://github.com/vienhong20/Face-Recognition-/tree/master/labeled_images/${label}/${i}.jpg"
+        );
+        const detections = await faceapi
+          .detectSingleFace(img)
+          .withFaceLandmarks()
+          .withFaceDescriptors();
+        descriptions.push(detections.descriptor);
       }
+      return new faceapi.LabeledFacceDescriptors(label, descriptions);
     })
   );
 }
